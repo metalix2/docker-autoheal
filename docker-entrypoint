@@ -29,7 +29,9 @@ if [ "$1" = 'autoheal' ] && [ -e ${DOCKER_SOCK} ]; then
     while read -r CONTAINER_ID && read -r CONTAINER_NAME && read -r CONTAINER_STATUS; do
         CONTAINER_SHORT_ID=${CONTAINER_ID:0:12}
         echo $CONTAINER_STATUS
-        if [ echo $CONTAINER_STATUS | sed 's/.*\(starting\).*/\1/' == "starting"]; then
+        starting=`echo "$CONTAINER_STATUS" | sed 's/.*\(starting\).*/\1/'`
+
+        if [ "starting" = "$starting" ]; then
           DATE=$(date +%d-%m-%Y" "%H:%M:%S)
           if [ "null" = "$CONTAINER_NAME" ]; then
             echo "$DATE Container name of ($CONTAINER_SHORT_ID) is null, which implies container does not exist - don't restart"
