@@ -20,17 +20,10 @@ if [ "$1" = 'autoheal' ] && [ -e ${DOCKER_SOCK} ]; then
   # https://docs.docker.com/engine/api/v1.25/
 
   # Set watch container selector
-  if [ "$AUTOHEAL_CONTAINER_LABEL" == "all" ]; then
-    watchLabelFilter=""
-  else
-    watchLabelFilter=",\"label\":\[\"${AUTOHEAL_CONTAINER_LABEL:=autohealhost}=true\"\]"
-  fi
+  watchLabelFilter=",\"label\":\[\"autohealhost=true\"\]"
+
   # Set container selector
-  if [ "$AUTOHEAL_CONTAINER_LABEL" == "all" ]; then
-    labelFilter=""
-  else
-    labelFilter=",\"label\":\[\"${AUTOHEAL_CONTAINER_LABEL:=autohealrestart}=true\"\]"
-  fi
+  labelFilter=",\"label\":\[\"autohealrestart=true\"\]"
 
   echo "Monitoring containers for unhealthy status in ${AUTOHEAL_START_PERIOD} second(s)"
   sleep ${AUTOHEAL_START_PERIOD:=0}
