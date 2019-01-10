@@ -47,6 +47,8 @@ if [ "$1" = 'autoheal' ] && [ -e ${DOCKER_SOCK} ]; then
             else
               echo "$DATE Container ${CONTAINER_NAME} ($CONTAINER_SHORT_ID) dependent container is unhealthy - Restarting container now"
               docker_curl -f -XPOST http://localhost/containers/${CONTAINER_ID}/restart || echo "$DATE Restarting container $CONTAINER_SHORT_ID failed"
+              sleep 10
+              docker_curl -f -XPOST http://localhost/containers/${CONTAINER_ID}/restart || echo "$DATE Restarting container $CONTAINER_SHORT_ID failed"
             fi
           done
         fi
