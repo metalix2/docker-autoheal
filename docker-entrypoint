@@ -24,7 +24,7 @@ if [ "$1" = 'autoheal' ] && [ -e ${DOCKER_SOCK} ]; then
 
   while true; do
     sleep ${AUTOHEAL_INTERVAL:=5}
-    apiUrl="http://localhost/containers/json?filters=\{\"label\":\[\"autohealhost=true\"\]}"
+    apiUrl="http://localhost/containers/json?filters=\{\"label\":\[\"autohealhost=true\"\]\}"
     docker_curl "$apiUrl" | jq -r 'foreach .[] as $CONTAINER([];[]; $CONTAINER | .Id, .Names[0], .Status)' | \
     while read -r CONTAINER_ID && read -r CONTAINER_NAME && read -r CONTAINER_STATUS; do
         CONTAINER_SHORT_ID=${CONTAINER_ID:0:12}
