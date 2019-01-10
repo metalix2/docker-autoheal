@@ -19,11 +19,17 @@ if [ "$1" = 'autoheal' ] && [ -e ${DOCKER_SOCK} ]; then
   
   # https://docs.docker.com/engine/api/v1.25/
 
+  # Set watch container selector
+  if [ "$AUTOHEAL_CONTAINER_LABEL" == "all" ]; then
+    watchLabelFilter=""
+  else
+    watchLabelFilter=",\"label\":\[\"${AUTOHEAL_CONTAINER_LABEL:=autohealhost}=true\"\]"
+  fi
   # Set container selector
   if [ "$AUTOHEAL_CONTAINER_LABEL" == "all" ]; then
     labelFilter=""
   else
-    labelFilter=",\"label\":\[\"${AUTOHEAL_CONTAINER_LABEL:=autoheal}=true\"\]"
+    labelFilter=",\"label\":\[\"${AUTOHEAL_CONTAINER_LABEL:=autohealrestart}=true\"\]"
   fi
 
   echo "Monitoring containers for unhealthy status in ${AUTOHEAL_START_PERIOD} second(s)"
@@ -31,8 +37,7 @@ if [ "$1" = 'autoheal' ] && [ -e ${DOCKER_SOCK} ]; then
 
   while true; do
     sleep ${AUTOHEAL_INTERVAL:=5}
-    
-    apiUrl="http://localhost/containers/json?filters=\{\"health\":\[\"unhealthy\"\]${labelFilter}\}"
+    apiUrl="http://localhost/containers/json?filters=\{\"health\":\[\"unhealthy\"\]${watchLabelFilter}\}"
     docker_curl "$apiUrl" | jq -r 'foreach .[] as $CONTAINER([];[]; $CONTAINER | .Id, .Names[0])' | \
     while read -r CONTAINER_ID && read -r CONTAINER_NAME; do
         CONTAINER_SHORT_ID=${CONTAINER_ID:0:12}
@@ -40,8 +45,16 @@ if [ "$1" = 'autoheal' ] && [ -e ${DOCKER_SOCK} ]; then
         if [ "null" = "$CONTAINER_NAME" ]; then
           echo "$DATE Container name of ($CONTAINER_SHORT_ID) is null, which implies container does not exist - don't restart"
         else
-          echo "$DATE Container ${CONTAINER_NAME} ($CONTAINER_SHORT_ID) found to be unhealthy - Restarting container now"
-          docker_curl -f -XPOST http://localhost/containers/${CONTAINER_ID}/restart || echo "$DATE Restarting container $CONTAINER_SHORT_ID failed"
+          apiUrl="http://localhost/containers/json?filters=\{${labelFilter}\}"
+          docker_curl "$apiUrl" | jq -r 'foreach .[] as $CONTAINER([];[]; $CONTAINER | .Id, .Names[0])' | \
+          while read -r CONTAINER_ID && read -r CONTAINER_NAME; do
+             if [ "null" = "$CONTAINER_NAME" ]; then
+              echo "$DATE Container name of ($CONTAINER_SHORT_ID) is null, which implies container does not exist - don't restart"
+            else
+              echo "$DATE Container ${CONTAINER_NAME} ($CONTAINER_SHORT_ID) dependent container is unhealthy - Restarting container now"
+              docker_curl -f -XPOST http://localhost/containers/${CONTAINER_ID}/restart || echo "$DATE Restarting container $CONTAINER_SHORT_ID failed"
+            fi
+          done
         fi
     done
   done
